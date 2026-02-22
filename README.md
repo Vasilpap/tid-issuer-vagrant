@@ -1,38 +1,52 @@
 # TID Issuer Vagrant Lab
 
-Local multi-VM environment used for TID Issuer deployment and Ansible testing.
+Vagrant environment for running the platform locally in two scenarios.
 
-## Topology
+## Scenarios
 
-Default (`TID_SCENARIO=split`):
+Split scenario (`TID_SCENARIO=split`):
 
-- `control` (`192.168.56.10`): control node
-- `api-server` (`192.168.56.101`): API host
-- `infra-server` (`192.168.56.102`): infrastructure host
-- `front-server` (`192.168.56.103`): frontend host
+- `control` (`192.168.56.10`)
+- `api-server` (`192.168.56.101`)
+- `infra-server` (`192.168.56.102`)
+- `front-server` (`192.168.56.103`)
 
-Docker-env scenario (`TID_SCENARIO=docker-env`):
+Single-host scenario (`TID_SCENARIO=docker-env`):
 
-- `control` (`192.168.56.10`): control node
-- `docker-env` (`192.168.56.103`): single host for full-stack Docker Compose deployment
+- `control` (`192.168.56.10`)
+- `docker-env` (`192.168.56.103`)
 
 All VMs use `ubuntu/jammy64`.
+
+```mermaid
+flowchart TB
+  subgraph Split
+    C1[control 192.168.56.10] --> A1[api-server 192.168.56.101]
+    C1 --> I1[infra-server 192.168.56.102]
+    C1 --> W1[front-server 192.168.56.103]
+  end
+  subgraph DockerEnv
+    C2[control 192.168.56.10] --> D1[docker-env 192.168.56.103]
+  end
+```
 
 ## Prerequisites
 
 - Vagrant
 - VirtualBox
-- vagrant-hostmanager plugin (used by this `Vagrantfile`)
+- `vagrant-hostmanager` plugin
 
-## Usage
+## Run
+
+Split:
 
 ```bash
-vagrant up
-vagrant status
-vagrant ssh control
+TID_SCENARIO=split vagrant up
+TID_SCENARIO=split vagrant status
+TID_SCENARIO=split vagrant ssh control
 ```
 
-Run the single-VM docker-env scenario:
+Docker-env:
 
 ```bash
 TID_SCENARIO=docker-env vagrant up
@@ -40,47 +54,31 @@ TID_SCENARIO=docker-env vagrant status
 TID_SCENARIO=docker-env vagrant ssh control
 ```
 
-Scenario selection uses VM `autostart` flags. The non-selected scenario VMs remain defined but are not started by default.
+## Switch Between Scenarios
 
-When switching scenarios, stop or destroy VMs from the previous one first to avoid IP conflicts (`front-server` and `docker-env` both use `192.168.56.103`).
-
-Destroy lab:
+`front-server` and `docker-env` share `192.168.56.103`, so stop or destroy before switching.
 
 ```bash
-vagrant destroy -f
-```
-
-For the docker-env scenario:
-
-```bash
+TID_SCENARIO=split vagrant destroy -f
 TID_SCENARIO=docker-env vagrant destroy -f
 ```
 
-## Deploy with Ansible
+## Deploy From Control VM
 
-From the `control` VM (inside the `tid-issuer-ansible` directory):
+Inside `tid-issuer-ansible`:
 
-- Split scenario:
-
-```bash
-ansible-playbook -i hosts.yaml playbooks/site.yml --ask-vault-pass -e @group_vars/secrets.vault.yml
-```
-
-- Docker-env scenario:
+Split:
 
 ```bash
-ansible-playbook -i hosts.yaml playbooks/docker-env.yml --ask-vault-pass -e @group_vars/secrets.vault.yml
+ansible-playbook playbooks/site.yml --ask-vault-pass -e @group_vars/secrets.vault.yml
 ```
 
-## SSH Behavior
+Docker-env:
 
-`scripts/key.sh` creates a control-node keypair and propagates the public key to the other nodes for passwordless SSH between lab machines.
+```bash
+ansible-playbook playbooks/docker-env.yml --ask-vault-pass -e @group_vars/secrets.vault.yml
+```
 
-## Notes
+## SSH Bootstrapping
 
-- `.vagrant/` and generated key artifacts are gitignored.
-- This repo provides infrastructure only; deployment is handled by `tid-issuer-ansible`.
-
-## Architecture and Diagrams
-
-Cross-repository diagrams (API DTO class diagram, system architecture, deployment diagram) and the complete technology inventory are documented in `../WORKSPACE_ARCHITECTURE.md`.
+`scripts/key.sh` creates a control keypair and adds the public key to target VMs for passwordless SSH.
