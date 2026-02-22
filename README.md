@@ -40,6 +40,10 @@ TID_SCENARIO=docker-env vagrant status
 TID_SCENARIO=docker-env vagrant ssh control
 ```
 
+Scenario selection uses VM `autostart` flags. The non-selected scenario VMs remain defined but are not started by default.
+
+When switching scenarios, stop or destroy VMs from the previous one first to avoid IP conflicts (`front-server` and `docker-env` both use `192.168.56.103`).
+
 Destroy lab:
 
 ```bash
