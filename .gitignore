@@ -1,0 +1,9 @@
+# Vagrant local machine state
+.vagrant/
+
+# Generated control key material
+control.pub
+
+# Local key artifacts
+*.pem
+*.key
